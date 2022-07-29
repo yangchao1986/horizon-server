@@ -1,6 +1,4 @@
 #！/bin/bash
-WORK_PATH='./server'
-cd $WORK_PATH
 echo '创建镜像'
 docker build -t horizonsys/server:v1.0 . 
 echo '删除旧容器'
