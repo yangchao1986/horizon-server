@@ -10,4 +10,4 @@ docker stop horizonsys-server
 docker rm horizonsys-server
 fi;
 echo '创建新容器'
-docker docker run -di --name=horizonsys-server -p 30080:80 horizonsys/server:v1.0
+docker docker run -di --name=horizonsys-server -p 38989:3000 horizonsys/server:v1.0
