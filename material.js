@@ -19,7 +19,6 @@ Material.get('/materialList',(req,res)=>{
   sqlFun(sqlLen,null,data => {
     let len = data.length;
     const sql = "select * from material where is_deleted=0 order by id desc limit 10 offset " + (page-1)*10;
-    console.log(sql)
     sqlFun(sql,null,result => {
       if(result.length>0){
         res.send({
@@ -58,7 +57,7 @@ Material.get("/addMaterial", (req, res) => {
       }
     }
     const sql = "insert into material (`" + name.join("`,`") + "`) values ('" + value.join("','") + "')";
-    
+
     var arr=null;
     sqlFun(sql, arr, result => {
         if (result.affectedRows > 0) {
@@ -73,6 +72,43 @@ Material.get("/addMaterial", (req, res) => {
             })
         }
     })
+})
+
+/*
+ * 编辑物料 {id}
+ */
+Material.get("/editMaterial", (req, res) => {
+  console.log("更新编辑数据")
+  var id = req.query.id;
+  let name = []
+  let value = []
+  /* 将接口数据{json}转成name字段字符串,value值字符串 */
+  for(var k in req.query){
+    var flag = ['id','is_deleted'].includes(k)  //判断这个值是否需要被踢掉。
+    if(isNaN(req.query[k])&&!isNaN(Date.parse(req.query[k]))){
+      req.query[k] = Moment(req.query[k]).format("YYYY-MM-DD")
+    }
+    if(!flag){
+      name.push(k+"=?");
+      value.push(req.query[k])
+    }
+  }
+  value.push(id)
+  const sql = "update material set " + name.join(",") + " where id=?"
+  console.log(sql)
+  sqlFun(sql, value, result => {
+      if (result.affectedRows > 0) {
+          res.send({
+              status: 200,
+              msg: "更新成功"
+          })
+      } else {
+          res.send({
+              status: 500,
+              msg: "更新失败"
+          })
+      }
+  })
 })
 
 /*
@@ -102,9 +138,9 @@ Material.get("/delMaterial", (req, res) => {
 */
 Material.get("/searchMaterial",(req,res) => {
   var search = req.query.search;
-  const sql = "select * from material where concat(`material`,`code`,`class`) like '%" + search + "%'"; //后台进行数据分割减少前台压力
+  const sql = "select * from material where is_deleted=0 and concat(`material`,`code`,`brand`) like '%" + search + "%'"; //后台进行数据分割减少前台压力
   sqlFun(sql,null,(result) => {
-    console.log(result)
+    
     if(result.length>0){
       res.send({
         status: 200,

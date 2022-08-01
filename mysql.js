@@ -1,11 +1,12 @@
 const mysql = require('mysql')
 
 const client = mysql.createConnection({
-  host:'10.71.32.138',
+  //host:'10.71.32.138',
+  host:'localhost',
   user:'root',
-  password:'56592886',
+  password:'root',
   database:'labmana',
-  port:'33306'
+  port:'3306'
 })
 function sqlFun(sql,arr,callback){
   client.query(sql,arr,function(error,result){
