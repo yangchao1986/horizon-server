@@ -1,4 +1,7 @@
 #！/bin/bash
+echo '创建目录'
+mkdir upload/img
+mkdir upload/avatar
 echo '创建镜像'
 docker build -t horizonsys/server:v1.0 . 
 echo '删除旧容器'
