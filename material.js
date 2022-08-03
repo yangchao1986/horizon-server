@@ -82,7 +82,7 @@ Material.get("/addMaterial", (req, res) => {
   let value = Object.values(item)
   
   const sql = "insert into material (`" + name.join("`,`") + "`) values ('" + value.join("','") + "')";
-  console.log(sql)
+
   var arr=null;
   sqlFun(sql, arr, result => {
       if (result.affectedRows > 0) {
