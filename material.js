@@ -38,6 +38,37 @@ Material.get('/materialList',(req,res)=>{
 })
 
 /*
+* 查询物料
+*/
+Material.get("/searchMaterial",(req,res) => {
+  var search = req.query.search;
+  const page = req.query.page || 1;
+  const sqlLen = "select * from material where is_deleted=0 and concat(`material`,`code`,`brand`) like '%" 
+  + search + "%'";
+  sqlFun(sqlLen,null,data => {
+    let len = data.length;
+    const sql = "select * from material where is_deleted=0 and concat(`material`,`code`,`brand`) like '%" 
+  + search + "%' order by id desc limit 10 offset " 
+  + (page-1)*10;
+    sqlFun(sql,null,result => {
+      if(result.length>0){
+        res.send({
+          status:200,
+          data:result,
+          pageSize:10,
+          total:len
+        })
+      } else {
+        res.send({
+          status:500,
+          msg:"暂无数据"
+        })
+      }
+    })
+  })
+})
+
+/*
 * 1、添加物料
 * 2、获取参数[Materialname,password,name,job,email,register,status,role,phone,avatar]
 */
@@ -95,7 +126,7 @@ Material.get("/editMaterial", (req, res) => {
   }
   value.push(id)
   const sql = "update material set " + name.join(",") + " where id=?"
-  console.log(sql)
+
   sqlFun(sql, value, result => {
       if (result.affectedRows > 0) {
           res.send({
@@ -133,27 +164,7 @@ Material.get("/delMaterial", (req, res) => {
     })
 })
 
-/*
-* 查询物料
-*/
-Material.get("/searchMaterial",(req,res) => {
-  var search = req.query.search;
-  const sql = "select * from material where is_deleted=0 and concat(`material`,`code`,`brand`) like '%" + search + "%'"; //后台进行数据分割减少前台压力
-  sqlFun(sql,null,(result) => {
-    
-    if(result.length>0){
-      res.send({
-        status: 200,
-        result
-      })
-    }else{
-      res.send({
-        status: 500,
-        msg: "暂无数据"
-      })
-    }
-  })
-})
+
 
 /*
 * 1、批量添加物料

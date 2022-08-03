@@ -3,16 +3,19 @@ const router = express.Router()
 const sqlFun = require('./mysql')
 const multer = require('multer') 
 const fs = require('fs') 
+const Moment = require('moment')
 
 router.get('/',(req,res)=>{
   res.send('hello')
 })
+
+// 获取样本列表
 router.get('/sampleList',(req,res)=>{
   const page = req.query.page || 1;
-  const sqlLen = "select * from sample where id";
+  const sqlLen = "select * from sample where is_deleted=0";
   sqlFun(sqlLen,null,data => {
     let len = data.length;
-    const sql = "select * from sample order by id desc limit 8 offset " + (page-1)*8;
+    const sql = "select * from sample where is_deleted=0 order by id desc limit 8 offset " + (page-1)*8;
     sqlFun(sql,null,result => {
       if(result.length>0){
         res.send({
@@ -32,24 +35,34 @@ router.get('/sampleList',(req,res)=>{
 })
 
 /*
-* 样本搜索功能
+* 查询样本
 */
 router.get("/searchSample",(req,res) => {
   var search = req.query.search;
-  const sql = "select * from sample where concat(`code`,`name`,`submitter`) like '%" + search + "%'"; //后台进行数据分割减少前台压力
-  sqlFun(sql,null,(result) => {
-    console.log(result)
-    if(result.length>0){
-      res.send({
-        status: 200,
-        result
-      })
-    }else{
-      res.send({
-        status: 500,
-        msg: "暂无数据"
-      })
-    }
+  const page = req.query.page || 1;
+  const sqlLen = "select * from sample where is_deleted=0 and concat(`code`,`name`,`submitter`) like '%" 
+  + search + "%'";
+  sqlFun(sqlLen,null,data => {
+    let len = data.length;
+    const sql = "select * from sample where is_deleted=0 and concat(`code`,`name`,`submitter`) like '%" 
+  + search + "%' order by id desc limit 10 offset " 
+  + (page-1)*10;
+    sqlFun(sql,null,result => {
+      console.log(sql)
+      if(result.length>0){
+        res.send({
+          status:200,
+          data:result,
+          pageSize:10,
+          total:len
+        })
+      } else {
+        res.send({
+          status:500,
+          msg:"暂无数据"
+        })
+      }
+    })
   })
 })
 
@@ -81,13 +94,13 @@ var storage = multer.diskStorage({
     cb(null,Date.now()+"-"+file.originalname)
   }
 })
+
 /* 设置存储目录 */
 var uploadFolder = './upload/img';
 createFolder(uploadFolder);
 var upload = multer({
   storage:storage
 })
-
 router.post("/upload",upload.single("file"),function(req,res,next){
   var file =req.file;
   console.log('文件类型：%s',file.mimetype);
@@ -101,8 +114,6 @@ router.post("/upload",upload.single("file"),function(req,res,next){
   })
 })
 
-
-
 /*
  * 样本信息添加
  * 参数： title cid  category sellPoint price num descs paramsInfo image
@@ -114,25 +125,24 @@ router.get("/addSample", (req, res) => {
      */
     //var arr = [code,name,sex,age,uid,nationality,disease,history,clinical,sample,status,test,sampling,receiving,unit,submitter,phone,remarks,pics];
     //console.log('本次提交的信息为',JSON.stringify(req.query)) //JSON.stringify将字典序列化为字符串
-    let name = []
-    let value = []
-    /* 将接口数据{json}转成name字段字符串,value值字符串*/
-    for(var k in req.query){
-        name.push(k);
-        value.push(req.query[k])
-    }
+    let item = req.query
+    delete item['id']
+    item.sampling = Moment(item.sampling).format("YYYY-MM-DD")
+    item.receiving = Moment(item.receiving).format("YYYY-MM-DD")
+    let name = Object.keys(item)
+    let value = Object.values(item)
     const sql = "insert into sample (`" + name.join("`,`") + "`) values ('" + value.join("','") + "')";
     var arr=null;
     sqlFun(sql, arr, result => {
         if (result.affectedRows > 0) {
             res.send({
-                status: 200,
-                msg: "添加成功"
+              status: 200,
+              msg: "添加成功"
             })
         } else {
             res.send({
-                status: 500,
-                msg: "添加失败"
+              status: 500,
+              msg: "添加失败"
             })
         }
     })
@@ -144,7 +154,7 @@ router.get("/addSample", (req, res) => {
  */
 router.get("/delSample", (req, res) => {
     var id = req.query.id;
-    const sql = "delete from sample where id=?"
+    const sql = "update sample set is_deleted=1 where id=?"
     const arr = [id];
     sqlFun(sql, arr, result => {
         if (result.affectedRows > 0) {
@@ -161,45 +171,8 @@ router.get("/delSample", (req, res) => {
     })
 })
 
-
 /**
- * 批量删除 batchDelete  idArr Array  id标识
- * sql = "delete from A where id in (1,2,3)"
- */
-router.get("/batchDelete", (req, res) => {
-    let arr = req.query.idArr;//[] 数组格式 需要传递数据是 离散的数字格式
-    // const sql =`delete from project where id in (?)`;
-    let sql = '';
-    function fun(arr) {//sql =`delete from project where id in (101,102,103)`;
-        sql = `delete from project where id in (`
-        for (let i = 0; i < arr.length; i++) {
-            sql += arr[i] + ',' //101,102,
-        }
-        sql = sql.slice(0, -1)
-        sql = sql + ')'
-        // console.log(sql);
-    }
-    fun(arr)
-    sqlFn(sql, null, result => {
-        if (result.affectedRows > 0) {
-            res.send({
-                status: 200,
-                msg: "删除成功"
-            })
-        } else {
-            res.send({
-                status: 500,
-                msg: "删除失败"
-            })
-        }
-    })
-})
-
-
-
-
-/**
- * 修改商品
+ * 修改样本
  */
 
 router.get("/editSample", (req, res) => {
