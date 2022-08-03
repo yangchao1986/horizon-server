@@ -73,36 +73,30 @@ Material.get("/searchMaterial",(req,res) => {
 * 2、获取参数[Materialname,password,name,job,email,register,status,role,phone,avatar]
 */
 Material.get("/addMaterial", (req, res) => {
-
-    let name = []
-    let value = []
-    /* 将接口数据{json}转成name字段字符串,value值字符串 */
-    for(var k in req.query){
-      var flag = ['checkPassword'].includes(k)  //判断这个值是否需要被踢掉。
-      if(isNaN(req.query[k])&&!isNaN(Date.parse(req.query[k]))){
-        req.query[k] = Moment(req.query[k]).format("YYYY-MM-DD")
+  let item = req.query
+  delete item['checkPassword']
+  item.receiving = Moment(item.receiving).format("YYYY-MM-DD")
+  item.register = Moment(item.register).format("YYYY-MM-DD")
+  item.expiration = Moment(item.expiration).format("YYYY-MM-DD")
+  let name = Object.keys(item)
+  let value = Object.values(item)
+  
+  const sql = "insert into material (`" + name.join("`,`") + "`) values ('" + value.join("','") + "')";
+  console.log(sql)
+  var arr=null;
+  sqlFun(sql, arr, result => {
+      if (result.affectedRows > 0) {
+          res.send({
+              status: 200,
+              msg: "添加成功"
+          })
+      } else {
+          res.send({
+              status: 500,
+              msg: "添加失败"
+          })
       }
-      if(!flag){
-        name.push(k);
-        value.push(req.query[k])
-      }
-    }
-    const sql = "insert into material (`" + name.join("`,`") + "`) values ('" + value.join("','") + "')";
-
-    var arr=null;
-    sqlFun(sql, arr, result => {
-        if (result.affectedRows > 0) {
-            res.send({
-                status: 200,
-                msg: "添加成功"
-            })
-        } else {
-            res.send({
-                status: 500,
-                msg: "添加失败"
-            })
-        }
-    })
+  })
 })
 
 /*
